@@ -21,6 +21,7 @@
 #include <boost/format.hpp>
 
 #include <core/Error.hpp>
+#include <core/FilePath.hpp>
 #include <core/Log.hpp>
 #include <core/SafeConvert.hpp>
 #include <core/system/PosixSystem.hpp>
@@ -200,10 +201,28 @@ Error SessionManager::launchSession(boost::asio::io_service& ioService,
    }
    END_LOCK_MUTEX
 
+   // get user's home directory to load additional configuration files
+   core::system::user::User user;
+   Error error = userFromUsername(context.username, &user);
+   if (error) {
+     LOG_ERROR_MESSAGE("could not find user: " + context.username);
+     return error;
+   }
+
+   // Either use the server default for starting rsession or use the
+   // user's wrapper script.
+   const FilePath rsessionPath = FilePath(user.homeDirectory + "/.rstudio/rsession-wrapper");
+
    // determine launch options
    r_util::SessionLaunchProfile profile;
    profile.context = context;
-   profile.executablePath = server::options().rsessionPath();
+
+   if (rsessionPath.exists()) {
+     profile.executablePath = rsessionPath.absolutePath();
+   } else {
+     profile.executablePath = server::options().rsessionPath();
+   }
+
    profile.config = sessionProcessConfig(context);
 
    // pass the profile to any filters we have
@@ -213,7 +232,7 @@ Error SessionManager::launchSession(boost::asio::io_service& ioService,
    }
 
    // launch the session
-   Error error = sessionLaunchFunction_(ioService, profile);
+   error = sessionLaunchFunction_(ioService, profile);
    if (error)
    {
       removePendingLaunch(context);
