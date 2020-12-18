@@ -2,6 +2,7 @@
  * ServerSessionManager.cpp
  *
  * Copyright (C) 2009-19 by RStudio, PBC
+ * Copyright (C) 2020 Ricardo Wurmus
  *
  * Unless you have received this program directly from RStudio pursuant
  * to the terms of a commercial license agreement with RStudio, then
@@ -20,9 +21,13 @@
 #include <boost/format.hpp>
 
 #include <shared_core/SafeConvert.hpp>
+#include <shared_core/system/User.hpp>
 #include <core/system/PosixUser.hpp>
 #include <core/system/Environment.hpp>
 #include <core/json/JsonRpc.hpp>
+
+#include <core/r_util/RActiveSessions.hpp>
+#include <core/r_util/RUserData.hpp>
 
 #include <monitor/MonitorClient.hpp>
 #include <session/SessionConstants.hpp>
@@ -148,7 +153,28 @@ core::system::ProcessConfig sessionProcessConfig(
    std::copy(extraArgs.begin(), extraArgs.end(), std::back_inserter(args));
 
    // append R environment variables
-   r_util::RVersion rVersion = r_environment::rVersion();
+   // Get the active session (e.g. after switching projects) and set R
+   // variables according to the configured R version.
+   core::system::User user;
+   core::system::User::getUserFromIdentifier(context.username, user);
+   r_util::UserDirectories userDirs =
+     r_util::userDirectories(r_util::SessionTypeServer, user.getHomePath().getAbsolutePath());
+   FilePath userScratchPath_ = FilePath(userDirs.scratchPath);
+
+   r_util::ActiveSessions activeSessions(userScratchPath_);
+   std::vector<boost::shared_ptr<r_util::ActiveSession> > sessions =
+     activeSessions.list(user.getHomePath(), false);
+
+   r_util::RVersion rVersion;
+   if (sessions.size() > 0) {
+     // Get the R version from the active user session.  This will
+     // have been set earlier when the user switched to a project.
+     std::string errorMsg;
+     bool success = r_environment::detectRVersion(FilePath((*sessions.front()).rVersionHome()).completePath("bin/R"),
+                                   &rVersion, &errorMsg);
+   } else {
+     rVersion = r_environment::rVersion();
+   }
    core::system::Options rEnvVars = rVersion.environment();
    environment.insert(environment.end(), rEnvVars.begin(), rEnvVars.end());
    
