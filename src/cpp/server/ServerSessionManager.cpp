@@ -2,6 +2,7 @@
  * ServerSessionManager.cpp
  *
  * Copyright (C) 2021 by RStudio, PBC
+ * Copyright (C) 2020-2021 Ricardo Wurmus
  *
  * Unless you have received this program directly from RStudio pursuant
  * to the terms of a commercial license agreement with RStudio, then
@@ -21,9 +22,13 @@
 
 #include <shared_core/SafeConvert.hpp>
 #include <core/system/Process.hpp>
+#include <shared_core/system/User.hpp>
 #include <core/system/PosixUser.hpp>
 #include <core/system/Environment.hpp>
 #include <core/json/JsonRpc.hpp>
+
+#include <core/r_util/RActiveSessions.hpp>
+#include <core/r_util/RUserData.hpp>
 
 #include <monitor/MonitorClient.hpp>
 #include <session/SessionConstants.hpp>
@@ -156,7 +161,44 @@ core::system::ProcessConfig sessionProcessConfig(
    std::copy(extraArgs.begin(), extraArgs.end(), std::back_inserter(args));
 
    // append R environment variables
-   r_util::RVersion rVersion = r_environment::rVersion();
+   // Get the active session (e.g. after switching projects) and set R
+   // variables according to the configured R version.
+
+   // We cannot use core::system::userHomePath because it always
+   // returns the server user's home directory.  This is /root when
+   // rserver runs as root.  Instead we want to get the home directory
+   // of the *target* user for which rsession will be run.  This is
+   // why we launch a shell to determine the user's home directory.
+   core::system::ProcessOptions poptions;
+   core::system::ProcessResult presult;
+   Error rError = core::system::runCommand(
+            "/bin/sh -c 'echo -n ~" + context.username + "'",
+            poptions,
+            &presult);
+   if (rError)
+      LOG_ERROR(rError);
+   
+   FilePath homeDir = FilePath(presult.stdOut);
+   FilePath userScratchPath_ = core::system::xdg::userDataDir(context.username, homeDir);
+
+   r_util::ActiveSessions activeSessions(userScratchPath_);
+   std::vector<boost::shared_ptr<r_util::ActiveSession> > sessions =
+     activeSessions.list(homeDir, false);
+
+   r_util::RVersion rVersion;
+   if (sessions.size() > 0) {
+     // Get the R version from the active user session.  This will
+     // have been set earlier when the user switched to a project.
+     std::string errorMsg;
+     bool success = r_environment::detectRVersion(FilePath((*sessions.front()).rVersionHome()).completePath("bin/R"),
+                                   &rVersion, &errorMsg);
+
+     if (!success) {
+       rVersion = r_environment::rVersion();
+     }
+   } else {
+     rVersion = r_environment::rVersion();
+   }
    core::system::Options rEnvVars = rVersion.environment();
    environment.insert(environment.end(), rEnvVars.begin(), rEnvVars.end());
    
