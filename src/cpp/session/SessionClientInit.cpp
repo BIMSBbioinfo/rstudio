@@ -2,6 +2,7 @@
  * SessionClientInit.hpp
  *
  * Copyright (C) 2022 by Posit Software, PBC
+ * Copyright (C) 2020-2026 Ricardo Wurmus
  *
  * Unless you have received this program directly from Posit Software pursuant
  * to the terms of a commercial license agreement with Posit Software, then
@@ -62,6 +63,8 @@
 #include <core/http/CSRFToken.hpp>
 #include <core/r_util/RSessionContext.hpp>
 #include <core/system/Environment.hpp>
+
+#include <server_core/RVersionsScanner.hpp>
 
 #include <session/SessionConsoleProcess.hpp>
 #include <session/SessionClientEventService.hpp>
@@ -557,12 +560,32 @@ void handleClientInit(const boost::function<void()>& initFunction,
 
    sessionInfo["multi_session"] = options.multiSession();
 
-   json::Object rVersionsJson;
-   rVersionsJson["r_version"] = module_context::rVersion();
-   rVersionsJson["r_version_label"] = module_context::rVersionLabel();
-   rVersionsJson["r_home_dir"] = module_context::rHomeDir();
-   rVersionsJson["r_version_module"] = module_context::rVersionModule();
-   sessionInfo["r_versions_info"] = rVersionsJson;
+   // Read versions from /etc/rstudio/r-versions
+   json::Array availableRVersionsJson;
+   std::vector<r_util::RVersion> versions = RVersionsScanner().getRVersions();
+   for (r_util::RVersion& rEntry : versions)
+     {
+       json::Object rVersionJson;
+       rVersionJson["version"] = rEntry.number();
+       rVersionJson["label"] = rEntry.label();
+       rVersionJson["r_home"] = rEntry.homeDir().getAbsolutePath();
+       rVersionJson["r_version_module"] = rEntry.module();
+
+       availableRVersionsJson.push_back(rVersionJson);
+     }
+
+   json::Object rVersionsInfo;
+   rVersionsInfo["available_r_versions"] = availableRVersionsJson;
+   rVersionsInfo["r_version"] = module_context::rVersion();
+   rVersionsInfo["r_version_label"] = module_context::rVersionLabel();
+   rVersionsInfo["r_home_dir"] = module_context::rHomeDir();
+   rVersionsInfo["r_version_module"] = module_context::rVersionModule();
+   rVersionsInfo["default_r_version"] = module_context::rVersion();
+   rVersionsInfo["default_r_version_label"] = module_context::rVersionLabel();
+   rVersionsInfo["default_r_version_module"] = module_context::rVersionModule();
+   rVersionsInfo["default_r_home_dir"] = module_context::rHomeDir();
+   rVersionsInfo["restore_project_r_version"] = true;
+   sessionInfo["r_versions_info"] = rVersionsInfo;
 
    sessionInfo["show_user_home_page"] = options.showUserHomePage();
    sessionInfo["user_home_page_url"] = json::Value();
