@@ -70,7 +70,6 @@ public class NewProjectWizard extends Wizard<NewProjectInput,NewProjectResult>
          rVersionSelector_.setRVersion(rVersion);
          addLeftWidget(rVersionSelector_);
          rVersionSelector_.getElement().getStyle().setMarginRight(8, Unit.PX);
-         rVersionSelector_.setVisible(false);
       }
       
       openInNewWindow_ = new CheckBox("Open in new session");
