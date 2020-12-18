@@ -1136,7 +1136,8 @@ public class Projects implements OpenProjectFileEvent.Handler,
                         {
                            // perform quit
                            applicationQuit_.performQuit(null, saveChanges,
-                                 input.getProjectFile().getPath());
+                                                        input.getProjectFile().getPath(),
+                                                        input.getRVersion());
                         }
                      };
 
