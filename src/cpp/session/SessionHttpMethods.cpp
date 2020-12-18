@@ -2,6 +2,7 @@
  * SessionHttpMethods.hpp
  *
  * Copyright (C) 2009-19 by RStudio, PBC
+ * Copyright (C) 2020 Ricardo Wurmus
  *
  * Unless you have received this program directly from RStudio pursuant
  * to the terms of a commercial license agreement with RStudio, then
@@ -662,6 +663,33 @@ void handleConnection(boost::shared_ptr<HttpConnection> ptrConnection,
                   activeSession().setWorkingDir(projDir);
                }
 
+               RVersionSettings verSettings(
+                                  options().userScratchPath(),
+                                  FilePath(options().getOverlayOption(
+                                       kSessionSharedStoragePath)));
+
+               // Get the project's R version and set it for the active session.
+               if ((switchToProject != kProjectNone) &&
+                   (verSettings.restoreProjectRVersion()))
+               {
+                 FilePath projFile = resolveAliasedPath(switchToProject);
+                 std::string projDir = createAliasedPath(projFile.getParent());
+                 std::string version, rHome, label;
+                 verSettings.readProjectLastRVersion(projDir,
+                                                     module_context::sharedProjectScratchPath(),
+                                                     &version,
+                                                     &rHome,
+                                                     &label);
+                 activeSession().setRVersion(version, rHome, label);
+               }
+               // Reset version to default.
+               else
+               {
+                 activeSession().setRVersion(verSettings.defaultRVersion(),
+                                             verSettings.defaultRVersionHome(),
+                                             verSettings.defaultRVersionLabel());
+               }
+
                if (options().switchProjectsWithUrl())
                {
                   r_util::SessionScope scope;
@@ -716,10 +744,6 @@ void handleConnection(boost::shared_ptr<HttpConnection> ptrConnection,
                      {
                         FilePath projFile = resolveAliasedPath(switchToProject);
                         std::string projDir = createAliasedPath(projFile.getParent());
-                        RVersionSettings verSettings(
-                                            options().userScratchPath(),
-                                            FilePath(options().getOverlayOption(
-                                                  kSessionSharedStoragePath)));
                         verSettings.setProjectLastRVersion(projDir,
                                                            module_context::sharedProjectScratchPath(),
                                                            version,
