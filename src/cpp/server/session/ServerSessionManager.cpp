@@ -2,6 +2,7 @@
  * ServerSessionManager.cpp
  *
  * Copyright (C) 2022 by Posit Software, PBC
+ * Copyright (C) 2020-2026 Ricardo Wurmus
  *
  * Unless you have received this program directly from Posit Software pursuant
  * to the terms of a commercial license agreement with Posit Software, then
@@ -22,9 +23,13 @@
 #include <core/SocketRpc.hpp>
 #include <core/system/System.hpp>
 #include <core/system/Process.hpp>
+#include <shared_core/system/User.hpp>
 #include <core/system/PosixUser.hpp>
 #include <core/system/Environment.hpp>
 #include <core/json/JsonRpc.hpp>
+
+#include <core/r_util/RActiveSessions.hpp>
+#include <core/r_util/RActiveSessionsStorage.hpp>
 
 #include <session/SessionConstants.hpp>
 
@@ -380,6 +385,45 @@ void setProcessConfigFilter(const core::system::ProcessConfigFilter& filter)
    END_LOCK_MUTEX
 }
 
+void loadRVersion(const core::system::User& user, core::system::ProcessConfig* config) {
+  // Get the active session (e.g. after switching projects) and set R
+  // variables according to the configured R version.
+  FilePath storageDir =
+    system::xdg::userDataDir(user.getUsername(), user.getHomePath());
+  std::shared_ptr<r_util::IActiveSessionsStorage> sessionStorage =
+    std::shared_ptr<r_util::IActiveSessionsStorage>(new r_util::FileActiveSessionsStorage(storageDir));
+  std::unique_ptr<r_util::ActiveSessions> activeSessions =
+    std::unique_ptr<r_util::ActiveSessions>(new r_util::ActiveSessions(sessionStorage, storageDir));
+  std::vector<boost::shared_ptr<r_util::ActiveSession> > sessions =
+    activeSessions->list(false);
+
+  r_util::RVersion rVersion;
+  if (sessions.size() > 0) {
+    // Get the R version from the active user session.  This will
+    // have been set earlier when the user switched to a project.
+    std::string errorMsg;
+    bool success = r_environment::detectRVersion(FilePath((*sessions.front()).rVersionHome()).completePath("bin/R"),
+                                                 &rVersion, &errorMsg);
+
+    if (!success) {
+      rVersion = r_environment::rVersion();
+    }
+  } else {
+    rVersion = r_environment::rVersion();
+  }
+  core::system::Options rEnvVars = rVersion.environment();
+  config->environment.insert(config->environment.end(), rEnvVars.begin(), rEnvVars.end());
+
+  // mark this as the system default R version
+  core::system::setenv(&(config->environment),
+                       kRStudioDefaultRVersion,
+                       rVersion.number());
+  core::system::setenv(&(config->environment),
+                       kRStudioDefaultRVersionHome,
+                       rVersion.homeDir().getAbsolutePath());
+  return;
+}
+
 // default session launcher -- does the launch then tracks the pid
 // for later reaping
 Error SessionManager::launchAndTrackSession(
@@ -389,6 +433,9 @@ Error SessionManager::launchAndTrackSession(
    // if we are root then assume the identity of the user
    using namespace rstudio::core::system;
    std::string runAsUser = realUserIsRoot() ? profile.context.username : "";
+
+   LOG_DEBUG_MESSAGE("REKADO loading R version");
+   setProcessConfigFilter(loadRVersion);
 
    core::system::ProcessConfigFilter configFilter;
    LOCK_MUTEX(s_configFilterMutex)
