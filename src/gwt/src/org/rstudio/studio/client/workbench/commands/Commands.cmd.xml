@@ -1368,6 +1368,17 @@ See `/src/gwt/tools/i18n-helpers/README.md`.
         desc="Edit options for the current project"
         windowMode="main"/>
 
+   <cmd id="projectVersion0" visible="false" rebindable="false" windowMode="main"/>
+   <cmd id="projectVersion1" visible="false" rebindable="false" windowMode="main"/>
+   <cmd id="projectVersion2" visible="false" rebindable="false" windowMode="main"/>
+   <cmd id="projectVersion3" visible="false" rebindable="false" windowMode="main"/>
+   <cmd id="projectVersion4" visible="false" rebindable="false" windowMode="main"/>
+   <cmd id="projectVersion5" visible="false" rebindable="false" windowMode="main"/>
+   <cmd id="projectVersion6" visible="false" rebindable="false" windowMode="main"/>
+   <cmd id="projectVersion7" visible="false" rebindable="false" windowMode="main"/>
+   <cmd id="projectVersion8" visible="false" rebindable="false" windowMode="main"/>
+   <cmd id="projectVersion9" visible="false" rebindable="false" windowMode="main"/>
+
    <cmd id="projectSweaveOptions"
         menuLabel=""
         buttonLabel=""
