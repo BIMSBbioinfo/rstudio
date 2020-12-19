@@ -474,8 +474,14 @@ void handleClientInit(const boost::function<void()>& initFunction,
    sessionInfo["multi_session"] = options.multiSession();
 
    // Read versions from /etc/rstudio/r-versions
+   // ...and read from a user-controlled file
+   FilePath userRDirsPath =
+     options.userScratchPath().completePath("r-versions");
+
    json::Array availableRVersionsJson;
-   std::vector<r_util::RVersion> versions = RVersionsScanner().getRVersions();
+   std::vector<r_util::RVersion> versions =
+     RVersionsScanner().getRVersions(userRDirsPath);
+
    for (r_util::RVersion& rEntry : versions)
      {
        json::Object rVersionJson;
