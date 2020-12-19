@@ -2,6 +2,7 @@
  * RVersionsScanner.cpp
  *
  * Copyright (C) 2022 by Posit Software, PBC
+ * Copyright (C) 2020-2025 Ricardo Wurmus
  *
  * Unless you have received this program directly from Posit Software pursuant
  * to the terms of a commercial license agreement with Posit Software, then
@@ -139,6 +140,11 @@ void RVersionsScanner::setFallbackVersion()
 
 std::vector<r_util::RVersion> RVersionsScanner::getRVersions()
 {
+  return RVersionsScanner::getRVersions(FilePath(""));
+}
+
+std::vector<r_util::RVersion> RVersionsScanner::getRVersions(FilePath userFile)
+{
    if (!cachedVersions_.empty())
       return cachedVersions_;
 
@@ -167,6 +173,20 @@ std::vector<r_util::RVersion> RVersionsScanner::getRVersions()
       if (!error)
       {
          parseRVersionsFile(userRDirsPath, contents, &rHomeDirs, &rEntries);
+      }
+      else
+      {
+         LOG_ERROR(error);
+      }
+   }
+
+   if (!userFile.isEmpty() && (userFile.exists()))
+   {
+      std::string contents;
+      Error error = core::readStringFromFile(userFile, &contents, string_utils::LineEndingPosix);
+      if (!error)
+      {
+         parseRVersionsFile(userFile, contents, &rHomeDirs, &rEntries);
       }
       else
       {
