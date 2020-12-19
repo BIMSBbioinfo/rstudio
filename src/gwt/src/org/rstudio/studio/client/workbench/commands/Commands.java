@@ -2,6 +2,7 @@
  * Commands.java
  *
  * Copyright (C) 2022 by Posit Software, PBC
+ * Copyright (C) 2020-2025 Ricardo Wurmus
  *
  * Unless you have received this program directly from Posit Software pursuant
  * to the terms of a commercial license agreement with Posit Software, then
@@ -241,6 +242,18 @@ public abstract class
    public abstract AppCommand projectOptions();
    public abstract AppCommand projectSweaveOptions();
    public abstract AppCommand setWorkingDirToProjectDir();
+
+   // R Versions
+   public abstract AppCommand projectVersion0();
+   public abstract AppCommand projectVersion1();
+   public abstract AppCommand projectVersion2();
+   public abstract AppCommand projectVersion3();
+   public abstract AppCommand projectVersion4();
+   public abstract AppCommand projectVersion5();
+   public abstract AppCommand projectVersion6();
+   public abstract AppCommand projectVersion7();
+   public abstract AppCommand projectVersion8();
+   public abstract AppCommand projectVersion9();
 
    // Console
    public abstract AppCommand consoleClear();

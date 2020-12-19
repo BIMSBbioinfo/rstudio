@@ -394,6 +394,8 @@ public class ElementIds
    public final static String SIDEBAR_TOGGLE_BUTTON = "sidebar_toggle_button";
    public final static String ASSISTANT_TOGGLE_BUTTON = "assistant_toggle_button";
 
+   public final static String VERSION_MENUBUTTON = "version_menubutton";
+
    // BuildPane
    public final static String BUILD_MORE_MENUBUTTON = "build_more_menubutton";
    public final static String BUILD_BOOKDOWN_MENUBUTTON = "build_bookdown_menubutton";
