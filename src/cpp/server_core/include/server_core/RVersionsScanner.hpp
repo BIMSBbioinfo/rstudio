@@ -45,6 +45,7 @@ public:
    // scans for r versions and returns any that were found
    // subsequent calls return cached versions found in initial scan
    std::vector<r_util::RVersion> getRVersions();
+   std::vector<r_util::RVersion> getRVersions(core::FilePath userFile);
 
    bool detectRVersion(const core::FilePath& rScriptPath,
                        core::r_util::RVersion* pVersion,
