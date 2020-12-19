@@ -236,6 +236,10 @@ public class GlobalToolbar extends Toolbar
          ProjectPopupMenu projectMenu = new ProjectPopupMenu(
                sessionInfo, commands_, ElementIds.PROJECT_MENUBUTTON_TOOLBAR_SUFFIX);
          addRightWidget(projectMenu.getToolbarButton());
+
+         RVersionPopupMenu rVersionMenu = new RVersionPopupMenu(
+               sessionInfo, commands_);
+         addRightWidget(rVersionMenu.getToolbarButton());
       }
    }
 
