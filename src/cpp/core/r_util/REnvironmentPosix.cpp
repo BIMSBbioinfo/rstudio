@@ -489,6 +489,7 @@ bool detectRLocationsUsingR(const std::string& rScriptPath,
    // (the normal semantics of invoking the R script are that it overwrites
    // R_HOME and prints a warning -- this warning is co-mingled with the
    // output of R and messes up our parsing)
+   std::string oldRHome = core::system::getenv("R_HOME");
    core::system::setenv("R_HOME", "");
 
    // if no R path was specified for a module, the module binary path MUST be specified
@@ -598,6 +599,8 @@ bool detectRLocationsUsingR(const std::string& rScriptPath,
       return false;
    }
 
+   // restore R_HOME
+   core::system::setenv("R_HOME", oldRHome);
    return true;
 }
 #endif
